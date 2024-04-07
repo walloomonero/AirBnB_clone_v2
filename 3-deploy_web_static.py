@@ -10,6 +10,7 @@ execute: fab -f 3-deploy_web_static.py deploy -i ~/.ssh/id_rsa -u ubuntu
 from datetime import datetime
 from os.path import exists, isdir
 from fabric.api import env, local, put, run
+
 env.hosts = ['100.24.206.10', '54.167.152.64']
 
 
@@ -17,18 +18,20 @@ def do_pack():
     """To generate a tgz archive"""
     try:
         date = datetime.now().strftime("%Y%m%d%H%M%S")
-        if isdir("versions") is False:
-            local("mkdir versions")
+        if not isdir("versions"):
+            local("mkdir -p versions")
         file_name = "versions/web_static_{}.tgz".format(date)
         local("tar -cvzf {} web_static".format(file_name))
         return file_name
-    except:
+    except Exception as e:
+        print("Error occurred during packing:", e)
         return None
 
 
 def do_deploy(archive_path):
     """To distribute an archive to the web servers"""
-    if exists(archive_path) is False:
+    if not exists(archive_path):
+        print("Archive does not exist:", archive_path)
         return False
     try:
         file_n = archive_path.split("/")[-1]
@@ -43,7 +46,8 @@ def do_deploy(archive_path):
         run('rm -rf /data/web_static/current')
         run('ln -s {}{}/ /data/web_static/current'.format(path, no_ext))
         return True
-    except:
+    except Exception as e:
+        print("Error occurred during deployment:", e)
         return False
 
 
@@ -53,3 +57,7 @@ def deploy():
     if archive_path is None:
         return False
     return do_deploy(archive_path)
+
+
+if __name__ == "__main__":
+    deploy()
